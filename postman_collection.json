@@ -1,0 +1,380 @@
+{
+	"info": {
+		"_postman_id": "xxap-invoice-api-collection",
+		"name": "XXAP Invoice Interface API",
+		"description": "AP Invoice Interface REST API\n\nAuthor: Wirayuda Senjaya\nDate: 12-Dec-2025\n\nSteps:\n- Step 2: Create Invoice to Staging\n- Step 3: Process Invoice (main_process)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://your-ebs-server:port/ords/apps/ap/invoice",
+			"description": "Base URL for REST API"
+		},
+		{
+			"key": "org_id",
+			"value": "204",
+			"description": "Operating Unit ID"
+		},
+		{
+			"key": "batch_id",
+			"value": "100",
+			"description": "Batch ID for grouping invoices"
+		},
+		{
+			"key": "vendor_num",
+			"value": "1000",
+			"description": "Vendor Number (GE Plastics)"
+		},
+		{
+			"key": "vendor_site_code",
+			"value": "GE PLASTICS",
+			"description": "Vendor Site Code"
+		},
+		{
+			"key": "valid_ccid",
+			"value": "17021",
+			"description": "Valid Code Combination ID (01-520-5250-0000-000)"
+		},
+		{
+			"key": "last_staging_id",
+			"value": "",
+			"description": "Last created staging_id (auto-populated)"
+		}
+	],
+	"item": [
+		{
+			"name": "Step 2 - Create Invoice to Staging",
+			"description": "Create invoice header and lines in staging table",
+			"item": [
+				{
+					"name": "2.1 Create Invoice (Header + Line)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.staging_id) {",
+									"    pm.collectionVariables.set('last_staging_id', jsonData.staging_id);",
+									"    console.log('Staging ID saved: ' + jsonData.staging_id);",
+									"}",
+									"",
+									"pm.test('Status is success', function () {",
+									"    pm.expect(jsonData.status).to.eql('success');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"invoice_num\": \"WIRA-TEST-{{$timestamp}}\",\n    \"invoice_date\": \"2025-12-12\",\n    \"invoice_type\": \"STANDARD\",\n    \"invoice_amount\": 5000,\n    \"currency_code\": \"USD\",\n    \"vendor_num\": \"{{vendor_num}}\",\n    \"vendor_site_code\": \"{{vendor_site_code}}\",\n    \"terms_name\": \"Immediate\",\n    \"description\": \"Test Invoice from REST API\",\n    \"gl_date\": \"2025-12-12\",\n    \"org_id\": {{org_id}},\n    \"batch_id\": {{batch_id}},\n    \"lines\": [\n        {\n            \"line_number\": 1,\n            \"line_type\": \"ITEM\",\n            \"amount\": 5000,\n            \"description\": \"Test Line Item\",\n            \"dist_code_ccid\": {{valid_ccid}}\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"create"
+							]
+						},
+						"description": "Create invoice with header and line in staging.\n\n**Request Body:**\n```json\n{\n    \"invoice_num\": \"WIRA-TEST-{{$timestamp}}\",\n    \"invoice_date\": \"2025-12-12\",\n    \"invoice_type\": \"STANDARD\",\n    \"invoice_amount\": 5000,\n    \"currency_code\": \"USD\",\n    \"vendor_num\": \"1000\",\n    \"vendor_site_code\": \"GE PLASTICS\",\n    \"terms_name\": \"Immediate\",\n    \"description\": \"Test Invoice from REST API\",\n    \"org_id\": 204,\n    \"batch_id\": 100,\n    \"lines\": [\n        {\n            \"line_number\": 1,\n            \"line_type\": \"ITEM\",\n            \"amount\": 5000,\n            \"description\": \"Test Line Item\",\n            \"dist_code_ccid\": 17021\n        }\n    ]\n}\n```\n\n**Expected Response:**\n```json\n{\n    \"status\": \"success\",\n    \"staging_id\": 123,\n    \"message\": \"Invoice created successfully with 1 line(s)\"\n}\n```"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "POST",
+								"url": "{{base_url}}/create"
+							},
+							"status": "Created",
+							"code": 201,
+							"body": "{\n    \"status\": \"success\",\n    \"staging_id\": 8,\n    \"message\": \"Invoice created successfully with 1 line(s)\"\n}"
+						}
+					]
+				},
+				{
+					"name": "2.2 Create Invoice (Multiple Lines)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"invoice_num\": \"WIRA-MULTI-{{$timestamp}}\",\n    \"invoice_date\": \"2025-12-12\",\n    \"invoice_type\": \"STANDARD\",\n    \"invoice_amount\": 15000,\n    \"currency_code\": \"USD\",\n    \"vendor_num\": \"{{vendor_num}}\",\n    \"vendor_site_code\": \"{{vendor_site_code}}\",\n    \"terms_name\": \"Immediate\",\n    \"description\": \"Multi-line Invoice Test\",\n    \"org_id\": {{org_id}},\n    \"batch_id\": {{batch_id}},\n    \"lines\": [\n        {\n            \"line_number\": 1,\n            \"line_type\": \"ITEM\",\n            \"amount\": 5000,\n            \"description\": \"Line 1 - Office Supplies\",\n            \"dist_code_ccid\": {{valid_ccid}}\n        },\n        {\n            \"line_number\": 2,\n            \"line_type\": \"ITEM\",\n            \"amount\": 7000,\n            \"description\": \"Line 2 - IT Equipment\",\n            \"dist_code_ccid\": {{valid_ccid}}\n        },\n        {\n            \"line_number\": 3,\n            \"line_type\": \"ITEM\",\n            \"amount\": 3000,\n            \"description\": \"Line 3 - Services\",\n            \"dist_code_ccid\": {{valid_ccid}}\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"create"
+							]
+						},
+						"description": "Create invoice with multiple lines."
+					},
+					"response": []
+				},
+				{
+					"name": "2.3 Get Invoice Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/status/{{last_staging_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"status",
+								"{{last_staging_id}}"
+							]
+						},
+						"description": "Check invoice status in staging.\n\n**Status Codes:**\n- N = New (pending validation)\n- V = Validated\n- E = Error\n- P = Processed (in interface table)\n- I = Interfaced (imported to Oracle AP)"
+					},
+					"response": [
+						{
+							"name": "Status - New",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n    \"staging_id\": 8,\n    \"process_flag\": \"N\",\n    \"status\": \"New\",\n    \"error_message\": \"\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Step 3 - Process Invoice (main_process)",
+			"description": "Execute main_process: Validate → Transfer → Import",
+			"item": [
+				{
+					"name": "3.1 Process Invoice (Full Flow)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"org_id\": {{org_id}},\n    \"batch_id\": {{batch_id}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/process",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"process"
+							]
+						},
+						"description": "Execute main_process to:\n1. Validate staging data\n2. Transfer to interface tables\n3. Submit AP Invoice Import\n4. Update staging status\n\n**Request Body:**\n```json\n{\n    \"org_id\": 204,\n    \"batch_id\": 100\n}\n```\n\n**Expected Response:**\n```json\n{\n    \"status\": \"success\",\n    \"return_code\": \"0\",\n    \"request_id\": 7648512,\n    \"message\": \"Process completed successfully\"\n}\n```\n\n**Return Codes:**\n- 0 = Success\n- 1 = Warning\n- 2 = Error"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n    \"status\": \"success\",\n    \"return_code\": \"0\",\n    \"request_id\": 7648512,\n    \"message\": \"Process completed successfully\"\n}"
+						},
+						{
+							"name": "Warning",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n    \"status\": \"warning\",\n    \"return_code\": \"1\",\n    \"request_id\": 7648513,\n    \"message\": \"Process completed with warnings\"\n}"
+						}
+					]
+				},
+				{
+					"name": "3.2 Process Single Invoice",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"staging_id\": {{last_staging_id}},\n    \"org_id\": {{org_id}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/process",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"process"
+							]
+						},
+						"description": "Process a specific invoice by staging_id."
+					},
+					"response": []
+				},
+				{
+					"name": "3.3 Check Final Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/status/{{last_staging_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"status",
+								"{{last_staging_id}}"
+							]
+						},
+						"description": "Check final status after processing.\n\nExpected: process_flag = 'I' (Interfaced) if successful."
+					},
+					"response": [
+						{
+							"name": "Status - Interfaced",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n    \"staging_id\": 8,\n    \"process_flag\": \"I\",\n    \"status\": \"Interfaced\",\n    \"interface_id\": 5172488,\n    \"error_message\": \"\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Utility Endpoints",
+			"description": "Helper endpoints for testing",
+			"item": [
+				{
+					"name": "Search Invoice by Number",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/search?invoice_num=WIRA-TEST-251212183755&org_id={{org_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "invoice_num",
+									"value": "WIRA-TEST-251212183755"
+								},
+								{
+									"key": "org_id",
+									"value": "{{org_id}}"
+								}
+							]
+						},
+						"description": "Search invoice by number and org_id."
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Invoice",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"staging_id\": {{last_staging_id}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/cancel",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"cancel"
+							]
+						},
+						"description": "Cancel invoice in staging (only for N or E status)."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Generate timestamp for unique invoice numbers",
+					"pm.variables.set('timestamp', Date.now());"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"pm.test('Response time < 30s', function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(30000);",
+					"});",
+					"",
+					"try {",
+					"    var jsonData = pm.response.json();",
+					"    if (jsonData.staging_id) {",
+					"        pm.collectionVariables.set('last_staging_id', jsonData.staging_id);",
+					"    }",
+					"} catch (e) {",
+					"    // Not JSON response",
+					"}"
+				]
+			}
+		}
+	]
+}
